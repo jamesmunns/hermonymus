@@ -2,4 +2,4 @@ credentials.py
 slackbot_settings.py
 *.pyc
 venv/
-
+*.json
