@@ -3,3 +3,6 @@ slackbot_settings.py
 *.pyc
 venv/
 *.json
+__pycache__/
+*.md
+*.html
