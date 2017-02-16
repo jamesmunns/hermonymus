@@ -2,31 +2,128 @@ import slacker
 import slackbot_settings as ss
 import json
 
+from md_render import render
+
 USERS = {}
 
-def main():
-    her = slacker.Slacker(ss.API_TOKEN)
+DEFAULT_HISTORY_CACHE = "history.json"
+DEFAULT_CHANNEL_CACHE = "channels.json"
+DEFAULT_USER_CACHE = "users.json"
+
+class HistoryCache(object):
+    def __init__(self, slacker, cachefile=None):
+        if cachefile != None:
+            with open(cachefile, 'r') as ifile:
+                self._data = json.load(ifile)
+        else:
+            self._data = {}
+
+        self._slacker = slacker
+        self.cachefile = cachefile
+
+    def get_newest_ts(self, channel_id):
+        if channel_id in self._data and len(self._data[channel_id]) > 0:
+            last = self._data[channel_id][0]["ts"]
+        else:
+            last = None
+
+        return last
+
+    def get_channel_history(self, channel_id, latest=None):
+        messages = []
+        while(True):
+            print("\tGetting {}".format("Latest" if latest == None else latest))
+            x = self._slacker.channels.history(channel_id, oldest=latest).body
+
+            for i in x["messages"]:
+              messages.append(i)
+
+            if x["has_more"]:
+              latest = x["messages"][-1]["ts"]
+            else:
+              break
+
+        return messages
+
+    def update_channel(self, channel_id):
+        latest = self.get_newest_ts(channel_id)
+
+        if latest is None:
+            self._data[channel_id] = []
+
+        temp_hist = self.get_channel_history(channel_id, latest)
+
+        self._data[channel_id] = temp_hist + self._data[channel_id]
+
+class ChannelCache(object):
+    def __init__(self, slacker, cachefile=None):
+        if cachefile != None:
+            with open(cachefile, 'r') as ifile:
+                self._data = json.load(ifile)
+        else:
+            self._data = []
+
+        self._slacker = slacker
+        self.cachefile = cachefile
+
+    def update(self):
+        new_channel = self._slacker.channels.list().body["channels"]
+
+        for nc in new_channel:
+            for c in self._data:
+                # Update channels with new data
+                if c["id"] == nc["id"]:
+                    c = nc
+                    break
+            else:
+                # Add newly added channels
+                self._data.append(nc)
+
+    def get_channels(self):
+        return self._data
+
+class UserCache(object):
+    def __init__(self, slacker, cachefile=None):
+        if cachefile != None:
+            with open(cachefile, 'r') as ifile:
+                self._data = json.load(ifile)
+        else:
+            self._data = {}
+
+        self._slacker = slacker
+        self.cachefile = cachefile
+
+    def resolve_user(self, user_id):
+        if not user_id in self._data:
+            self._data[user_id] = self._slacker.users.info(user=user_id).body['user']['name']
+
+        return self._data[user_id]
+
+def connect(api_token):
+    her = slacker.Slacker(api_token)
     x = her.rtm.start().body
-    print(x["self"]["name"])
+    # print(x["self"]["name"])
 
-    # chans = [{"name": x["name"], "id": x["id"]} for x in get_channels(her)]
-    # hist = []
-    # for i in chans:
-    #     print(i["name"])
-    #     if i["name"] == "crafternoon":
-    #         hist = get_channel_history(her, i["id"])
+    return her
 
-    # for msg in hist[::-1]:
-    #     print(msg["ts"], resolve_user(her, msg["user"]), msg["text"])
+def main():
+    slacker = connect(ss.API_TOKEN)
 
-    hist = {}
+    history = HistoryCache(slacker=slacker, cachefile=DEFAULT_HISTORY_CACHE)
+    channels = ChannelCache(slacker=slacker, cachefile=DEFAULT_CHANNEL_CACHE)
+    users = UserCache(slacker=slacker, cachefile=DEFAULT_USER_CACHE)
 
-    raw_channels = get_channels(her)
+    channels.update()
 
-    for channel in raw_channels:
+    for channel in channels.get_channels():
         i = channel["id"]
+
         print("getting {}...".format(channel["name"]))
-        hist[i] = get_channel_history(her, i)
+
+        history.update_channel(i)
+
+
+    return
 
     # TODO: cache users for some reason?
     print("building userlist")
@@ -44,33 +141,35 @@ def main():
     with open("channels.json", "w") as cfile:
         json.dump(raw_channels, cfile, sort_keys=True, indent=4, separators=(',', ': '))
 
+    with open("history.html", "w") as ofile:
+        ofile.write(render(channels=raw_channels, history=hist, users=USERS))
 
-def resolve_user(slacker, user_id):
-    if not user_id in USERS:
-        USERS[user_id] = slacker.users.info(user=user_id).body['user']['name']
+# def resolve_user(slacker, user_id):
+#     if not user_id in USERS:
+#         USERS[user_id] = slacker.users.info(user=user_id).body['user']['name']
 
-    return USERS[user_id]
+#     return USERS[user_id]
 
-def get_channels(slacker):
-    x = slacker.channels.list()
+# def get_channels(slacker):
+#     x = slacker.channels.list()
 
-    if not (x.successful and x.body["ok"]):
-        return None
+#     if not (x.successful and x.body["ok"]):
+#         return None
 
-    return x.body["channels"]
+#     return x.body["channels"]
 
-def get_channel_history(slacker, channel_id, latest=None):
-    messages = []
-    while(True):
-        print("Getting {}".format(latest))
-        x = slacker.channels.history(channel_id, latest=latest).body
-        for i in x["messages"]:
-          messages.append(i)
-        if x["has_more"]:
-          latest = x["messages"][-1]["ts"]
-        else:
-          break
-    return messages
+# def get_channel_history(slacker, channel_id, latest=None):
+#     messages = []
+#     while(True):
+#         print("\tGetting {}".format("Latest" if latest == None else latest))
+#         x = slacker.channels.history(channel_id, oldest=latest).body
+#         for i in x["messages"]:
+#           messages.append(i)
+#         if x["has_more"]:
+#           latest = x["messages"][-1]["ts"]
+#         else:
+#           break
+#     return messages
 
 if __name__ == '__main__':
     main()
