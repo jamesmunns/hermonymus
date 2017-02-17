@@ -23,7 +23,7 @@ def render(history, users, channels,
 
         # TODO: actually sort
         for msg in history[channel["id"]][::-1]:
-            clean_msg = msg["text"].replace("\n", " ").replace("|", "/")
+            clean_msg = msg["text"].replace("\n", " ").replace("|", "/")  # remove pipes - breaks tables
 
             assert "\n" not in clean_msg, "WHAT"
             # print(clean_msg)
@@ -35,7 +35,7 @@ def render(history, users, channels,
 
         output += ("\n")
 
-        return markdown.markdown(output, extensions=['markdown.extensions.tables'])
+    return markdown.markdown(output, extensions=['markdown.extensions.tables'])
 
 def main():
     with open("history.json", 'r') as hfile:
