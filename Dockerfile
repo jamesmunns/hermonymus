@@ -13,4 +13,7 @@ RUN wget https://www.python.org/ftp/python/3.6.0/Python-3.6.0.tgz && \
     rm Python-3.6.0.tgz && \
     rm -rf ./Python-3.6.0
 
- RUN pip3 install flask flask_httpauth markdown slacker
+RUN pip3 install flask flask_httpauth markdown slacker
+
+RUN apt-get install -y cron
+

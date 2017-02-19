@@ -12,7 +12,7 @@ def get_pw(username):
         return USERS.get(username)
     return None
 
-@app.route('/')
+@app.route('/slackhistory')
 @auth.login_required
 def index():
     return app.send_static_file("site.html")
