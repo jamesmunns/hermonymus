@@ -7,4 +7,4 @@ python3 /hermonymus/scraper/hermonymus.py \
     -m /hermonymus/server/static/site.html \
     --users /cache/users.json \
     --channels /cache/channels.json \
-    --history /cache/history.json \
+    --history /cache/history.json
