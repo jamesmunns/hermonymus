@@ -16,3 +16,7 @@ ENV LC_ALL C.UTF-8
 RUN apt-get install -y python3 python3-pip cron git-core
 
 RUN pip3 install flask flask_httpauth markdown slacker
+
+ADD run.sh /run.sh
+
+CMD ["/bin/bash", "/run.sh"]

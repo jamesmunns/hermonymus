@@ -2,6 +2,8 @@
 
 set -eux
 
+source /.cronprofile
+
 python3 /hermonymus/scraper/hermonymus.py \
     -a $API_KEY \
     -m /hermonymus/server/static/site.html \

@@ -1,1 +1,2 @@
-* * * * * /scrape.sh
+20 3 * * * /hermonymus/docker/scrape.sh 2>&1
+
