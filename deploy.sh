@@ -15,6 +15,6 @@ ssh droplet ' \
         --name james_herm \
         --env-file secrets/api.keys \
         -v $(pwd)/cache:/cache \
-        -v $(pwd)/..:/git \
-        -v $(pwd)/secrets:/auth \
+        -v $(pwd)/..:/git:ro \
+        -v $(pwd)/secrets:/auth:ro \
         -d hermonymus'
